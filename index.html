@@ -1,5 +1,5 @@
 --VOCÊ PODE SER PRESO Se COPIAR ISSO 
---You could be arrested if you copy this. 
+--You could be arrested if you copy this.         
 
 <!DOCTYPE html>
 <html lang="pt-br">
@@ -147,22 +147,7 @@
         "MaxSize","MinSize","MaxTextSize","MinTextSize","AspectRatio","AspectType","DominantAxis"
     ];
 
-    const strictKws  = [ "print","pairs","ipairs","game","workspace","script","require","typeof","shared","settings",
-        "local","end","function","if","then","else","elseif","for","while","do","repeat","until","return","break","continue",
-        "true","false","nil","and","not","or","ScreenGui","BillboardGui","SurfaceGui","Frame","ScrollingFrame","CanvasGroup",
-        "TextLabel","TextButton","TextBox","ImageLabel","ImageButton","ViewportFrame","VideoFrame","UIListLayout","UIGridLayout",
-        "UIPageLayout","UICorner","UIStroke","UIPadding","UIAspectRatioConstraint","UIScale","UISizeConstraint","UITextSizeConstraint",
-        "WaitForChild()","FindFirstChild()","FindFirstChildWhichIsA()","GetChildren()","GetDescendants()","Destroy()","Clone()","IsA()",
-        "Instance.new()","Color3.new()","Color3.fromRGB()","Color3.fromHSV()","UDim2.new()","UDim.new()","Vector2.new()","Vector3.new()",
-        "CFrame.new()","TweenService:Create()","TweenInfo.new()","Tween:Play()","Tween:Pause()","Tween:Cancel()","Name","Parent","Size",
-        "Position","AnchorPoint","Rotation","LayoutOrder","ZIndex","Visible","Active","Selectable","AutomaticSize","SizeConstraint",
-        "ClipsDescendants","BackgroundColor3","BackgroundTransparency","BorderSizePixel","BorderColor3","Text","TextColor3",
-        "TextTransparency","TextSize","Font","RichText","TextWrapped","TextScaled","TextYAlignment","LineHeight","PlaceholderText",
-        "PlaceholderColor3","ClearTextOnFocus","CanvasSize","CanvasPosition","ScrollingEnabled","ScrollBarThickness","AutomaticCanvasSize",
-        "Image","ImageColor3","ImageTransparency","ScaleType","SliceCenter","SliceScale","TileSize","ResampleMode","Color","Thickness",
-        "Transparency","ApplyStrokeMode","LineJoinMode","CornerRadius","PaddingTop","PaddingBottom","PaddingLeft","PaddingRight",
-        "MaxSize","MinSize","MaxTextSize","MinTextSize","AspectRatio","AspectType","DominantAxis"
-    ]; 
+    const strictKws = ["local", "function", "if", "then", "else", "elseif", "for", "while", "do", "repeat", "until", "return", "end", "break", "continue"];
 
     function updateHighlight() {
         let text = editor.value;
@@ -192,7 +177,6 @@
             }
         });
 
-        
         highlightLayer.innerHTML = html + "\n";
         editor.style.width = highlightLayer.offsetWidth + "px";
         editor.style.height = highlightLayer.offsetHeight + "px";
@@ -280,6 +264,33 @@
         highlightLayer.scrollLeft = editor.scrollLeft;
         highlightLayer.scrollTop = editor.scrollTop;
     };
+
+    editor.addEventListener('keydown', (e) => {
+        // Pares que devem fechar automaticamente
+        const pairs = { '(': ')', '{': '}', '[': ']', '"': '"', "'": "'", '`': '`' };
+        
+        // MODIFICAÇÃO SOLICITADA: Lógica para auto-fechar parênteses e outros pares
+        if (pairs[e.key]) {
+            e.preventDefault(); 
+            const start = editor.selectionStart;
+            const end = editor.selectionEnd;
+            const value = editor.value;
+            const selection = value.substring(start, end);
+            
+            // Insere o par e mantém o cursor no meio (ou envolve a seleção)
+            const replacement = e.key + selection + pairs[e.key];
+            editor.setRangeText(replacement, start, end, 'end');
+            
+            if (start === end) {
+                editor.selectionStart = editor.selectionEnd = start + 1;
+            } else {
+                editor.selectionStart = start + 1;
+                editor.selectionEnd = end + 1;
+            }
+            updateHighlight();
+            return;
+        }
+
         // LÓGICA DE TV E NAVEGAÇÃO
         if (suggestionList.style.display === 'block') {
             const items = suggestionList.querySelectorAll('.suggestion-item');
@@ -316,7 +327,8 @@
     updateHighlight();
 </script>
 </body>
-  </html>
+</html>
+
 <script>
     // Este evento controla o teclado para fechar parênteses e funções de TV
     editor.addEventListener('keydown', (e) => {
@@ -375,23 +387,3 @@
         }
     });
 </script>
-                items[selected].classList.remove('selected'); 
-                items[(selected - 1 + items.length) % items.length].classList.add('selected'); 
-                items[(selected - 1 + items.length) % items.length].scrollIntoView({block: 'nearest'});
-            }
-            else if (e.key === 'Enter') { 
-                e.preventDefault(); 
-                items[selected].click(); 
-            }
-            else if (e.key === 'Escape') { 
-                suggestionList.style.display = 'none'; 
-            }
-        } else {
-            if (e.key === 'Enter') {
-                e.preventDefault(); 
-                editor.blur();      
-                suggestionList.style.display = 'none';
-            }
-        }
-    });
-
