@@ -2,7 +2,7 @@
 <html lang="pt-br">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=2.5">
     <title>Lua Code 🌕</title>
     <style>
         :root {
@@ -80,13 +80,13 @@
 <script>
     // SUAS VARIÁVEIS ORIGINAIS (INTACTAS)
     const keywords = [
-        "print","pairs","ipairs","game","workspace","script","require","typeof","shared","settings",
+        "print("")","pairs","ipairs","game","workspace","script","require","typeof","shared","settings",
         "local","end","function","if","then","else","elseif","for","while","do","repeat","until","return","break","continue",
         "true","false","nil","and","not","or","ScreenGui","BillboardGui","SurfaceGui","Frame","ScrollingFrame","CanvasGroup",
         "TextLabel","TextButton","TextBox","ImageLabel","ImageButton","ViewportFrame","VideoFrame","UIListLayout","UIGridLayout",
         "UIPageLayout","UICorner","UIStroke","UIPadding","UIAspectRatioConstraint","UIScale","UISizeConstraint","UITextSizeConstraint",
-        "WaitForChild()","FindFirstChild()","FindFirstChildWhichIsA()","GetChildren()","GetDescendants()","Destroy()","Clone()","IsA()",
-        "Instance.new()","Color3.new()","Color3.fromRGB()","Color3.fromHSV()","UDim2.new()","UDim.new()","Vector2.new()","Vector3.new()",
+        "WaitForChild("")","FindFirstChild("")","FindFirstChildWhichIsA("")","GetChildren("")","GetDescendants()","Destroy()","Clone()","IsA()",
+        "Instance.new("")","Color3.new()","Color3.fromRGB(0,0,0)","Color3.fromHSV()","UDim2.new()","UDim.new()","Vector2.new()","Vector3.new()",
         "CFrame.new()","TweenService:Create()","TweenInfo.new()","Tween:Play()","Tween:Pause()","Tween:Cancel()","Name","Parent","Size",
         "Position","AnchorPoint","Rotation","LayoutOrder","ZIndex","Visible","Active","Selectable","AutomaticSize","SizeConstraint",
         "ClipsDescendants","BackgroundColor3","BackgroundTransparency","BorderSizePixel","BorderColor3","Text","TextColor3",
@@ -94,7 +94,7 @@
         "PlaceholderColor3","ClearTextOnFocus","CanvasSize","CanvasPosition","ScrollingEnabled","ScrollBarThickness","AutomaticCanvasSize",
         "Image","ImageColor3","ImageTransparency","ScaleType","SliceCenter","SliceScale","TileSize","ResampleMode","Color","Thickness",
         "Transparency","ApplyStrokeMode","LineJoinMode","CornerRadius","PaddingTop","PaddingBottom","PaddingLeft","PaddingRight",
-        "MaxSize","MinSize","MaxTextSize","MinTextSize","AspectRatio","AspectType","DominantAxis"
+        "MaxSize","MinSize","MaxTextSize","MinTextSize","AspectRatio","AspectType","DominantAxis","Humanoid","Player"
     ];
 
     // Configurando o Monaco Editor
@@ -153,12 +153,13 @@
 
         // 3. Inicializa o Editor
         var editor = monaco.editor.create(document.getElementById('monaco-container'), {
+            value = -- print(Hello, Word)
             language: 'lua',
             theme: 'ultra-dark',
             automaticLayout: true,
             fontSize: 16,
             fontFamily: "'Consolas', 'Monaco', monospace",
-            minimap: { enabled: true },
+            minimap: { enabled:  false },
             scrollBeyondLastLine: false,
             autoClosingBrackets: 'always',
             autoClosingQuotes: 'always',
