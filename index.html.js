@@ -1,5 +1,5 @@
-//VOCÊ PODE SER PRESO Se COPIAR ISSO 
-//You could be arrested if you copy this. 
+--VOCÊ PODE SER PRESO Se COPIAR ISSO 
+--You could be arrested if you copy this. 
 
 <!DOCTYPE html>
 <html lang="pt-br">
@@ -317,4 +317,59 @@
 </script>
 </body>
   </html>
-  
+
+
+    editor.addEventListener('keydown', (e) => {
+        // Define o par para o parêntese
+        if (e.key === '(') {
+            e.preventDefault(); // Impede inserir apenas "("
+            
+            const start = editor.selectionStart;
+            const end = editor.selectionEnd;
+            const value = editor.value;
+            const selection = value.substring(start, end);
+            
+            // Insere "()" e mantém o texto selecionado (se houver) no meio
+            const replacement = "(" + selection + ")";
+            editor.setRangeText(replacement, start, end, 'end');
+            
+            // Posiciona o cursor entre os parênteses
+            editor.selectionStart = editor.selectionEnd = start + 1;
+            
+            updateHighlight();
+            return;
+        }
+
+        // --- Mantenha sua lógica de TV e Autocomplete abaixo ---
+        if (suggestionList.style.display === 'block') {
+            const items = suggestionList.querySelectorAll('.suggestion-item');
+            let selected = Array.from(items).findIndex(i => i.classList.contains('selected'));
+            
+            if (e.key === 'ArrowDown') { 
+                e.preventDefault(); 
+                items[selected].classList.remove('selected'); 
+                items[(selected + 1) % items.length].classList.add('selected'); 
+                items[(selected + 1) % items.length].scrollIntoView({block: 'nearest'});
+            }
+            else if (e.key === 'ArrowUp') { 
+                e.preventDefault(); 
+                items[selected].classList.remove('selected'); 
+                items[(selected - 1 + items.length) % items.length].classList.add('selected'); 
+                items[(selected - 1 + items.length) % items.length].scrollIntoView({block: 'nearest'});
+            }
+            else if (e.key === 'Enter') { 
+                e.preventDefault(); 
+                items[selected].click(); 
+            }
+            else if (e.key === 'Escape') { 
+                suggestionList.style.display = 'none'; 
+            }
+        } else {
+            if (e.key === 'Enter') {
+                e.preventDefault(); 
+                editor.blur();      
+                suggestionList.style.display = 'none';
+            }
+        }
+    });
+
