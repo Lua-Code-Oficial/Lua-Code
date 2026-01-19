@@ -241,7 +241,8 @@
                 throw new Error("Syntax error: Expected identifier after 'local', got 'waitforchild'");
             }
 
-            // 2. Procura por erros de palavras desconhecidas (Ex: jjs)
+            // 2. Procura por erro
+            s de palavras desconhecidas (Ex: jjs)
             const words = code.match(/\b[a-zA-Z_][a-zA-Z0-9_]*\b/g) || [];
             words.forEach(word => {
                 if (!validWords.includes(word) && isNaN(word)) {
@@ -272,3 +273,154 @@
 
 </body>
 </html>
+
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lua Code 🌕</title>
+    <style>
+        :root {
+            --bg-color: #1e1e1e;
+            --border-color: #333333;
+            --text-main: #d4d4d4;
+            --interface-bg: #2d2d2d;
+            --code-block-bg: #1a1a1a;
+        }
+
+        body, html { margin: 0; padding: 0; height: 100%; width: 100%; background-color: var(--bg-color); font-family: 'Consolas', sans-serif; overflow: hidden; color: var(--text-main); }
+        .container { display: flex; flex-direction: column; height: 100vh; }
+        header { height: 45px; background: #2d2d2d; border-bottom: 1px solid var(--border-color); display: flex; align-items: center; padding: 0 20px; font-weight: bold; color: #ffffff; }
+        #monaco-container { flex: 1; width: 100%; height: 100%; }
+
+        /* BOTÃO VER */
+        #view-btn {
+            position: fixed; bottom: 25px; right: 25px; padding: 12px 30px;
+            background: #444; color: white; border: 1px solid #555; border-radius: 4px;
+            font-weight: bold; cursor: pointer; z-index: 100; transition: 0.2s;
+        }
+        #view-btn:hover { background: #555; }
+
+        /* INTERFACE BONITA */
+        #viewer-ui {
+            position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%) scale(0.9);
+            width: 80%; max-width: 800px; height: 70%; background: var(--interface-bg);
+            border-radius: 8px; border: 1px solid #444; box-shadow: 0 10px 30px rgba(0,0,0,0.6);
+            display: none; flex-direction: column; z-index: 200; opacity: 0; transition: 0.3s;
+        }
+        #viewer-ui.active { display: flex; opacity: 1; transform: translate(-50%, -50%) scale(1); }
+
+        .ui-header { padding: 15px 20px; border-bottom: 1px solid #444; display: flex; justify-content: space-between; align-items: center; }
+        .ui-title-group { display: flex; align-items: center; gap: 15px; }
+        .ui-title { color: #fff; font-size: 16px; font-weight: bold; }
+        
+        #copy-btn { 
+            background: #3a3a3a; border: 1px solid #555; color: #ccc; padding: 4px 10px; 
+            border-radius: 4px; cursor: pointer; font-size: 12px; transition: 0.2s;
+        }
+        #copy-btn:hover { background: #4a4a4a; color: white; }
+
+        .close-ui { background: none; border: none; color: #ff5555; font-size: 22px; cursor: pointer; }
+
+        /* QUADRADO DE SCRIPT */
+        .code-container { flex: 1; padding: 20px; overflow: hidden; }
+        #code-display {
+            width: 100%; height: 100%; background: var(--code-block-bg); border-radius: 6px;
+            border: 1px solid #111; padding: 15px; color: #d4d4d4; white-space: pre;
+            overflow: auto; font-family: 'Consolas', monospace; font-size: 14px; line-height: 1.5;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <header><span>Lua Code 🌕</span></header>
+    <div id="monaco-container"></div>
+</div>
+
+<button id="view-btn">Ver</button>
+
+<div id="viewer-ui">
+    <div class="ui-header">
+        <div class="ui-title-group">
+            <span class="ui-title">Visualizador de Script</span>
+            <button id="copy-btn">Copiar</button>
+        </div>
+        <button class="close-ui" onclick="toggleUI(false)">×</button>
+    </div>
+    <div class="code-container">
+        <div id="code-display"></div>
+    </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.36.1/min/vs/loader.min.js"></script>
+
+<script>
+    let editor;
+    require.config({ paths: { 'vs': 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.36.1/min/vs' }});
+    require(['vs/editor/editor.main'], function() {
+        editor = monaco.editor.create(document.getElementById('monaco-container'), {
+            language: 'lua', theme: 'vs-dark', fontSize: 16, automaticLayout: true,
+            suggest: { showKeywords: true }
+        });
+        monaco.editor.defineTheme('lua-theme', { base: 'vs-dark', inherit: true, rules: [], colors: { 'editor.background': '#1e1e1e' }});
+        monaco.editor.setTheme('lua-theme');
+    });
+
+    function fixLuaCode(code) {
+        // Separa linhas e remove espaços inúteis no fim
+        let lines = code.split('\n').map(l => l.trimEnd());
+        let newCode = lines.join('\n');
+        
+        // Conta blocos que precisam de 'end'
+        const opens = (newCode.match(/\b(if|function|while|for|do)\b/g) || []).length;
+        const closes = (newCode.match(/\b(end)\b/g) || []).length;
+        
+        // Adiciona os 'ends' que faltam no final com quebra de linha
+        let missing = opens - closes;
+        if (missing > 0) {
+            for (let i = 0; i < missing; i++) {
+                newCode += "\nend";
+            }
+        }
+        return newCode;
+    }
+
+    function toggleUI(show) {
+        const ui = document.getElementById('viewer-ui');
+        const btn = document.getElementById('view-btn');
+        const display = document.getElementById('code-display');
+
+        if (show) {
+            let rawCode = editor.getValue();
+            let fixed = fixLuaCode(rawCode);
+            display.textContent = fixed;
+            ui.classList.add('active');
+            btn.style.display = 'none';
+        } else {
+            ui.classList.remove('active');
+            btn.style.display = 'block';
+        }
+    }
+
+    document.getElementById('view-btn').onclick = () => toggleUI(true);
+
+    // BOTÃO DE COPIAR INTELIGENTE
+    document.getElementById('copy-btn').onclick = function() {
+        const code = document.getElementById('code-display').textContent;
+        navigator.clipboard.writeText(code);
+        
+        const btn = this;
+        btn.textContent = "Copiado!";
+        btn.style.borderColor = "#00a2ff";
+        
+        setTimeout(() => {
+            btn.textContent = "Copiar";
+            btn.style.borderColor = "#555";
+        }, 3000);
+    };
+</script>
+</body>
+    </html>
+    
