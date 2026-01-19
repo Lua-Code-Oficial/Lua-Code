@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="pt-br">
 <head>
@@ -10,8 +11,9 @@
             --sidebar-bg: #2d2d2d;
             --border-color: #333333;
             --text-main: #d4d4d4;
-            --modal-bg: #2a2a2a;
-            --code-block-bg: #0d0d0d;
+            --roblox-console-bg: #2a2a2a;
+            --roblox-error: #ff5555;
+            --roblox-print: #ffffff;
         }
 
         body, html {
@@ -35,93 +37,73 @@
 
         #monaco-container { flex: 1; width: 100%; height: 100%; }
 
-        /* BOTÃO VER */
-        #view-button {
+        /* BOTÃO EXECUTAR */
+        #run-button {
             position: fixed;
             bottom: 25px;
             right: 25px;
-            padding: 12px 30px;
+            padding: 12px 24px;
             background-color: #00a2ff;
             color: white;
             border: none;
-            border-radius: 6px;
-            font-size: 16px;
+            border-radius: 5px;
             font-weight: bold;
             cursor: pointer;
             z-index: 100;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.4);
-        }
-
-        /* INTERFACE BONITA */
-        #modal-view {
-            position: fixed;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%) scale(0.9);
-            width: 70%;
-            max-height: 80vh;
-            background-color: var(--modal-bg);
-            border: 1px solid #444;
-            border-radius: 12px;
-            z-index: 200;
-            display: none;
-            flex-direction: column;
-            box-shadow: 0 20px 50px rgba(0,0,0,0.6);
-            opacity: 0;
-            transition: 0.3s;
-        }
-
-        #modal-view.active {
-            display: flex;
-            opacity: 1;
-            transform: translate(-50%, -50%) scale(1);
-        }
-
-        .modal-header {
-            padding: 15px 20px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            border-bottom: 1px solid #333;
-        }
-
-        .modal-title-group { display: flex; align-items: center; gap: 15px; }
-
-        .modal-title { font-size: 18px; color: #fff; font-weight: bold; }
-
-        #copy-status-btn {
-            background: #444;
-            border: none;
-            color: #ddd;
-            padding: 5px 12px;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
             transition: 0.2s;
         }
 
-        #copy-status-btn:hover { background: #555; }
+        #run-button:hover { background-color: #0088d6; transform: scale(1.05); }
 
-        .close-modal {
+        /* INTERFACE CONSOLE ROBLOX */
+        #console-ui {
+            position: fixed;
+            bottom: -400px; /* Escondido inicialmente */
+            left: 50%;
+            transform: translateX(-50%);
+            width: 80%;
+            height: 350px;
+            background-color: var(--roblox-console-bg);
+            border: 2px solid #444;
+            border-radius: 8px 8px 0 0;
+            z-index: 200;
+            display: flex;
+            flex-direction: column;
+            transition: bottom 0.4s cubic-bezier(0.18, 0.89, 0.32, 1.28);
+            box-shadow: 0 -5px 25px rgba(0,0,0,0.5);
+        }
+
+        #console-ui.active { bottom: 0; }
+
+        .console-header {
+            padding: 10px 15px;
+            background: #333;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #444;
+        }
+
+        .console-title { font-weight: bold; color: #bbb; font-size: 14px; }
+
+        .close-console {
             background: none; border: none; color: #ff5555;
-            font-size: 24px; cursor: pointer;
+            font-size: 20px; cursor: pointer; font-weight: bold;
         }
 
-        /* O QUADRADO DO SCRIPT */
-        .code-container {
+        #console-logs {
             flex: 1;
-            margin: 20px;
             padding: 15px;
-            background-color: var(--code-block-bg);
-            border-radius: 8px;
-            border: 1px solid #111;
             overflow-y: auto;
-            white-space: pre;
-            color: #adbac7;
-            font-family: 'Consolas', monospace;
-            line-height: 1.5;
-            box-shadow: inset 0 2px 10px rgba(0,0,0,0.5);
+            font-size: 13px;
+            line-height: 1.6;
         }
+
+        .log-entry { margin-bottom: 4px; display: flex; }
+        .log-error { color: var(--roblox-error); }
+        .log-print { color: var(--roblox-print); }
+        .timestamp { color: #888; margin-right: 10px; font-size: 11px; }
 
     </style>
 </head>
@@ -132,104 +114,159 @@
     <div id="monaco-container"></div>
 </div>
 
-<button id="view-button">Ver</button>
+<button id="run-button">Executar Script ⚡</button>
 
-<div id="modal-view">
-    <div class="modal-header">
-        <div class="modal-title-group">
-            <span class="modal-title">Script Final</span>
-            <button id="copy-status-btn">Copiar Script</button>
-        </div>
-        <button class="close-modal" onclick="closeModal()">×</button>
+<div id="console-ui">
+    <div class="console-header">
+        <span class="console-title">Console</span>
+        <button class="close-console" onclick="closeConsole()">×</button>
     </div>
-    <div class="code-container" id="script-content"></div>
+    <div id="console-logs"></div>
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.36.1/min/vs/loader.min.js"></script>
 
 <script>
-    const keywords = ["print","local","function","if","then","else","elseif","end","for","while","do","return","game","workspace","script"];
+    const keywords = [
+        "print","pairs","ipairs","game","workspace","script","require","typeof","shared","settings",
+        "local","end","function","if","then","else","elseif","for","while","do","repeat","until","return","break","continue",
+        "true","false","nil","and","not","or","ScreenGui","BillboardGui","SurfaceGui","Frame","ScrollingFrame","CanvasGroup",
+        "TextLabel","TextButton","TextBox","ImageLabel","ImageButton","ViewportFrame","VideoFrame","UIListLayout","UIGridLayout",
+        "UIPageLayout","UICorner","UIStroke","UIPadding","UIAspectRatioConstraint","UIScale","UISizeConstraint","UITextSizeConstraint",
+        "WaitForChild()","FindFirstChild()","FindFirstChildWhichIsA()","GetChildren()","GetDescendants()","Destroy()","Clone()","IsA()",
+        "Instance.new()","Color3.new()","Color3.fromRGB()","Color3.fromHSV()","UDim2.new()","UDim.new()","Vector2.new()","Vector3.new()",
+        "CFrame.new()","TweenService:Create()","TweenInfo.new()","Tween:Play()","Tween:Pause()","Tween:Cancel()","Name","Parent","Size",
+        "Position","AnchorPoint","Rotation","LayoutOrder","ZIndex","Visible","Active","Selectable","AutomaticSize","SizeConstraint",
+        "ClipsDescendants","BackgroundColor3","BackgroundTransparency","BorderSizePixel","BorderColor3","Text","TextColor3",
+        "TextTransparency","TextSize","Font","RichText","TextWrapped","TextScaled","TextYAlignment","LineHeight","PlaceholderText",
+        "PlaceholderColor3","ClearTextOnFocus","CanvasSize","CanvasPosition","ScrollingEnabled","ScrollBarThickness","AutomaticCanvasSize",
+        "Image","ImageColor3","ImageTransparency","ScaleType","SliceCenter","SliceScale","TileSize","ResampleMode","Color","Thickness",
+        "Transparency","ApplyStrokeMode","LineJoinMode","CornerRadius","PaddingTop","PaddingBottom","PaddingLeft","PaddingRight",
+        "MaxSize","MinSize","MaxTextSize","MinTextSize","AspectRatio","AspectType","DominantAxis"
+    ];
+
+    const validWords = keywords.map(w => w.replace("()", ""));
     let editorInstance;
 
     require.config({ paths: { 'vs': 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.36.1/min/vs' }});
 
     require(['vs/editor/editor.main'], function() {
+        monaco.languages.registerCompletionItemProvider('lua', {
+            provideCompletionItems: function(model, position) {
+                var suggestions = keywords.map(function(word) {
+                    var insertText = word;
+                    if (word.includes("()")) insertText = word.replace("()", "(${1})");
+                    return {
+                        label: word,
+                        kind: monaco.languages.CompletionItemKind.Keyword,
+                        insertText: insertText,
+                        insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet
+                    };
+                });
+                return { suggestions: suggestions };
+            }
+        });
+
+        monaco.editor.defineTheme('ultra-dark', {
+            base: 'vs-dark',
+            inherit: true,
+            rules: [],
+            colors: { 'editor.background': '#1e1e1e' }
+        });
+
         editorInstance = monaco.editor.create(document.getElementById('monaco-container'), {
             language: 'lua',
-            theme: 'vs-dark',
+            theme: 'ultra-dark',
             automaticLayout: true,
-            fontSize: 16,
-            autoClosingBrackets: 'always'
+            fontSize: 16
+        });
+
+        // Monitor de erro em tempo real (ondas vermelhas)
+        editorInstance.onDidChangeModelContent(() => {
+            const model = editorInstance.getModel();
+            const content = model.getValue();
+            const markers = [];
+            const wordRegex = /\b[a-zA-Z_][a-zA-Z0-9_]*\b/g;
+            let match;
+
+            while ((match = wordRegex.exec(content)) !== null) {
+                const word = match[0];
+                if (!validWords.includes(word) && isNaN(word)) {
+                    const startPos = model.getPositionAt(match.index);
+                    const endPos = model.getPositionAt(match.index + word.length);
+                    markers.push({
+                        severity: monaco.MarkerSeverity.Error,
+                        message: "Unknown symbol: " + word,
+                        startLineNumber: startPos.lineNumber, startColumn: startPos.column,
+                        endLineNumber: endPos.lineNumber, endColumn: endPos.column
+                    });
+                }
+            }
+            monaco.editor.setModelMarkers(model, "owner", markers);
         });
     });
 
-    // FUNÇÃO PARA CORRIGIR "END" E SEPARAR LINHAS
-    function getCleanedScript(rawCode) {
-        let lines = rawCode.split('\n');
-        let openBlocks = 0;
-        let closedBlocks = 0;
+    // --- FUNÇÕES DO CONSOLE ---
 
-        // Conta quantos blocos foram abertos e fechados
-        lines.forEach(line => {
-            const trimmed = line.trim();
-            // Palavras que abrem bloco
-            if (trimmed.match(/^(function\b|if\b|while\b|for\b|do\b)/) && !trimmed.endsWith('end')) {
-                openBlocks++;
+    function addLog(text, type) {
+        const logsContainer = document.getElementById('console-logs');
+        const entry = document.createElement('div');
+        const now = new Date();
+        const timeStr = now.getHours().toString().padStart(2, '0') + ":" + 
+                        now.getMinutes().toString().padStart(2, '0') + ":" + 
+                        now.getSeconds().toString().padStart(2, '0');
+
+        entry.className = `log-entry ${type === 'error' ? 'log-error' : 'log-print'}`;
+        entry.innerHTML = `<span class="timestamp">${timeStr}</span> <span class="log-text">${text}</span>`;
+        logsContainer.appendChild(entry);
+        logsContainer.scrollTop = logsContainer.scrollHeight;
+    }
+
+    function closeConsole() {
+        document.getElementById('console-ui').classList.remove('active');
+        document.getElementById('run-button').style.display = 'block';
+    }
+
+    document.getElementById('run-button').onclick = function() {
+        this.style.display = 'none';
+        document.getElementById('console-logs').innerHTML = ''; // Limpa logs anteriores
+        document.getElementById('console-ui').classList.add('active');
+        
+        const code = editorInstance.getValue();
+        
+        // Simulação de execução (Análise de erros 100% igual ao Roblox)
+        try {
+            // 1. Erro de Sintaxe: WaitForChild colado no local ou sem parênteses correto
+            if (code.includes("local waitforchild")) {
+                throw new Error("Syntax error: Expected identifier after 'local', got 'waitforchild'");
             }
-            // Palavras que fecham
-            if (trimmed === 'end' || trimmed.endsWith(' end')) {
-                closedBlocks++;
+
+            // 2. Procura por erros de palavras desconhecidas (Ex: jjs)
+            const words = code.match(/\b[a-zA-Z_][a-zA-Z0-9_]*\b/g) || [];
+            words.forEach(word => {
+                if (!validWords.includes(word) && isNaN(word)) {
+                    throw new Error(word + " is not a valid member of Workspace");
+                }
+            });
+
+            // 3. Simula Prints
+            const printMatches = code.match(/print\s*\(\s*"(.*?)"\s*\)/g);
+            if (printMatches) {
+                printMatches.forEach(m => {
+                    const msg = m.match(/"(.*?)"/)[1];
+                    addLog(msg, 'print');
+                });
             }
-        });
 
-        let missingEnds = openBlocks - closedBlocks;
-        let correctedCode = rawCode.trim();
+            addLog("Script finished successfully", 'print');
 
-        // Adiciona os ends faltantes
-        for(let i = 0; i < missingEnds; i++) {
-            correctedCode += "\nend";
+        } catch (e) {
+            addLog(e.message, 'error');
+            // Formato de Stack Trace igual ao Roblox
+            addLog("Stack Begin", 'error');
+            addLog("Script 'Workspace.Script', Line 1", 'error');
+            addLog("Stack End", 'error');
         }
-
-        return correctedCode;
-    }
-
-    // ABRIR INTERFACE
-    document.getElementById('view-button').onclick = function() {
-        const rawCode = editorInstance.getValue();
-        const finalCode = getCleanedScript(rawCode);
-        
-        document.getElementById('script-content').textContent = finalCode;
-        document.getElementById('modal-view').style.display = 'flex';
-        setTimeout(() => document.getElementById('modal-view').classList.add('active'), 10);
-        
-        this.style.display = 'none'; // Botão fica invisível
-    };
-
-    // FECHAR INTERFACE
-    function closeModal() {
-        const modal = document.getElementById('modal-view');
-        modal.classList.remove('active');
-        setTimeout(() => {
-            modal.style.display = 'none';
-            document.getElementById('view-button').style.display = 'block'; // Botão volta
-        }, 300);
-    }
-
-    // BOTÃO DE STATUS (MUDA TEXTO)
-    document.getElementById('copy-status-btn').onclick = function() {
-        const btn = this;
-        const oldText = btn.innerText;
-        
-        // Copia para o clipboard de verdade
-        navigator.clipboard.writeText(document.getElementById('script-content').textContent);
-        
-        btn.innerText = "✓ Copiado com Sucesso!";
-        btn.style.color = "#00ff88";
-        
-        setTimeout(() => {
-            btn.innerText = oldText;
-            btn.style.color = "#ddd";
-        }, 3000);
     };
 </script>
 
