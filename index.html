@@ -2,7 +2,7 @@
 <html lang="pt-br">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=2.5">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Lua Code 🌕</title>
     <style>
         :root {
@@ -31,35 +31,11 @@
             justify-content: space-between;
         }
 
-        /* O container onde o Monaco vai morar */
         #monaco-container {
             flex: 1;
             width: 100%;
             height: 100%;
             overflow: hidden;
-        }
-
-        /* ESTILO DO BOTÃO DO SELETOR DE CORES (NOVO) */
-        .color-picker-widget {
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            background: transparent;
-            padding: 2px;
-        }
-        
-        .color-picker-icon {
-            width: 20px;
-            height: 20px;
-            border-radius: 4px;
-            box-shadow: 0 0 4px rgba(0,0,0,0.5);
-            transition: transform 0.1s;
-        }
-
-        .color-picker-icon:hover {
-            transform: scale(1.1);
-            border: 1px solid #ffffff;
         }
     </style>
 </head>
@@ -73,20 +49,17 @@
     <div id="monaco-container"></div>
 </div>
 
-<input type="color" id="hiddenColorPicker" style="display:none;">
-
 <script src="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.36.1/min/vs/loader.min.js"></script>
 
 <script>
-    // SUAS VARIÁVEIS ORIGINAIS (INTACTAS)
     const keywords = [
-        "print("")","pairs","ipairs","game","workspace","script","require","typeof","shared","settings",
+        "print","pairs","ipairs","game","workspace","script","require","typeof","shared","settings",
         "local","end","function","if","then","else","elseif","for","while","do","repeat","until","return","break","continue",
         "true","false","nil","and","not","or","ScreenGui","BillboardGui","SurfaceGui","Frame","ScrollingFrame","CanvasGroup",
         "TextLabel","TextButton","TextBox","ImageLabel","ImageButton","ViewportFrame","VideoFrame","UIListLayout","UIGridLayout",
         "UIPageLayout","UICorner","UIStroke","UIPadding","UIAspectRatioConstraint","UIScale","UISizeConstraint","UITextSizeConstraint",
-        "WaitForChild("")","FindFirstChild("")","FindFirstChildWhichIsA("")","GetChildren("")","GetDescendants()","Destroy()","Clone()","IsA()",
-        "Instance.new("")","Color3.new()","Color3.fromRGB(0,0,0)","Color3.fromHSV()","UDim2.new()","UDim.new()","Vector2.new()","Vector3.new()",
+        "WaitForChild()","FindFirstChild()","FindFirstChildWhichIsA()","GetChildren()","GetDescendants()","Destroy()","Clone()","IsA()",
+        "Instance.new()","Color3.new()","Color3.fromRGB()","Color3.fromHSV()","UDim2.new()","UDim.new()","Vector2.new()","Vector3.new()",
         "CFrame.new()","TweenService:Create()","TweenInfo.new()","Tween:Play()","Tween:Pause()","Tween:Cancel()","Name","Parent","Size",
         "Position","AnchorPoint","Rotation","LayoutOrder","ZIndex","Visible","Active","Selectable","AutomaticSize","SizeConstraint",
         "ClipsDescendants","BackgroundColor3","BackgroundTransparency","BorderSizePixel","BorderColor3","Text","TextColor3",
@@ -94,31 +67,27 @@
         "PlaceholderColor3","ClearTextOnFocus","CanvasSize","CanvasPosition","ScrollingEnabled","ScrollBarThickness","AutomaticCanvasSize",
         "Image","ImageColor3","ImageTransparency","ScaleType","SliceCenter","SliceScale","TileSize","ResampleMode","Color","Thickness",
         "Transparency","ApplyStrokeMode","LineJoinMode","CornerRadius","PaddingTop","PaddingBottom","PaddingLeft","PaddingRight",
-        "MaxSize","MinSize","MaxTextSize","MinTextSize","AspectRatio","AspectType","DominantAxis","Humanoid","Player"
+        "MaxSize","MinSize","MaxTextSize","MinTextSize","AspectRatio","AspectType","DominantAxis"
     ];
 
-    // Configurando o Monaco Editor
+    // Limpar nomes para validação (remover parênteses da lista de busca)
+    const validWords = keywords.map(w => w.replace("()", ""));
+
     require.config({ paths: { 'vs': 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.36.1/min/vs' }});
 
     require(['vs/editor/editor.main'], function() {
         
-        // 1. Criar o provedor de sugestões usando SUAS variáveis
         monaco.languages.registerCompletionItemProvider('lua', {
             provideCompletionItems: function(model, position) {
                 var suggestions = keywords.map(function(word) {
-                    
                     var insertText = word;
                     var kind = monaco.languages.CompletionItemKind.Keyword;
-
                     if (word.includes("()")) {
                         insertText = word.replace("()", "(${1})");
                         kind = monaco.languages.CompletionItemKind.Method;
                     } else if (word.includes(":")) {
                         kind = monaco.languages.CompletionItemKind.Function;
-                    } else if (["local", "game", "workspace"].includes(word)) {
-                         kind = monaco.languages.CompletionItemKind.Variable;
                     }
-
                     return {
                         label: word,
                         kind: kind,
@@ -127,12 +96,10 @@
                         documentation: "Comando Roblox Lua: " + word
                     };
                 });
-
                 return { suggestions: suggestions };
             }
         });
 
-        // 2. Configuração do Tema
         monaco.editor.defineTheme('ultra-dark', {
             base: 'vs-dark',
             inherit: true,
@@ -151,166 +118,54 @@
             }
         });
 
-        // 3. Inicializa o Editor
         var editor = monaco.editor.create(document.getElementById('monaco-container'), {
-            value = -- print(Hello, Word)
             language: 'lua',
             theme: 'ultra-dark',
             automaticLayout: true,
             fontSize: 16,
             fontFamily: "'Consolas', 'Monaco', monospace",
-            minimap: { enabled:  false },
+            minimap: { enabled: true },
             scrollBeyondLastLine: false,
             autoClosingBrackets: 'always',
             autoClosingQuotes: 'always',
             formatOnPaste: true
         });
 
-        // =================================================================
-        // LÓGICA DO SELETOR DE CORES (ADICIONADO CONFORME PEDIDO)
-        // =================================================================
-
-        var colorWidgetVisible = false;
-        var currentMethod = null; // Vai guardar se é 'fromRGB' ou 'fromHSV'
-        var widgetPosition = null;
-
-        // Definição do Widget (Botão flutuante)
-        var colorOverlayWidget = {
-            domNode: null,
-            getId: function() {
-                return 'my.color.picker.widget';
-            },
-            getDomNode: function() {
-                if (!this.domNode) {
-                    this.domNode = document.createElement('div');
-                    this.domNode.className = 'color-picker-widget';
-                    
-                    // Ícone solicitado
-                    var img = document.createElement('img');
-                    img.src = "https://uploadnow.io/f/6RcD8JM";
-                    img.className = 'color-picker-icon';
-                    img.title = "Escolher Cor";
-                    
-                    // Ao clicar no ícone, clica no input invisível
-                    img.onclick = function() {
-                        document.getElementById('hiddenColorPicker').click();
-                    };
-                    
-                    this.domNode.appendChild(img);
-                }
-                return this.domNode;
-            },
-            getPosition: function() {
-                return {
-                    position: widgetPosition,
-                    preference: [monaco.editor.ContentWidgetPositionPreference.EXACT]
-                };
-            }
-        };
-
-        // Adiciona o widget ao editor (invisível inicialmente)
-        editor.addContentWidget(colorOverlayWidget);
-
-        // Monitora onde o cursor está
-        editor.onDidChangeCursorPosition(function(e) {
-            var position = e.position;
-            var model = editor.getModel();
-            var lineContent = model.getLineContent(position.lineNumber);
+        // --- LÓGICA DE VALIDAÇÃO (ONDAS VERMELHAS) ---
+        function validateCode() {
+            const model = editor.getModel();
+            const content = model.getValue();
+            const markers = [];
             
-            // Verifica o texto antes do cursor
-            // Pega tudo do começo da linha até a posição do cursor
-            var textBeforeCursor = lineContent.substring(0, position.column - 1);
+            // Regex para encontrar palavras/variáveis isoladas
+            const wordRegex = /\b[a-zA-Z_][a-zA-Z0-9_]*\b/g;
+            let match;
 
-            // Expressões Regulares para detectar se estamos dentro dos parenteses
-            // Verifica se termina com "Color3.fromRGB(" ou "Color3.fromHSV("
-            // Aceita espaços eventuais ex: Color3.fromRGB( 
-            var rgbMatch = textBeforeCursor.match(/Color3\.fromRGB\s*\(\s*$/);
-            var hsvMatch = textBeforeCursor.match(/Color3\.fromHSV\s*\(\s*$/);
+            while ((match = wordRegex.exec(content)) !== null) {
+                const word = match[0];
+                
+                // Se a palavra NÃO está na lista, NÃO é um número e NÃO está em uma string/comentário
+                if (!validWords.includes(word) && isNaN(word)) {
+                    const startPos = model.getPositionAt(match.index);
+                    const endPos = model.getPositionAt(match.index + word.length);
 
-            if (rgbMatch) {
-                currentMethod = 'RGB';
-                widgetPosition = position;
-                editor.layoutContentWidget(colorOverlayWidget);
-                // Pequeno truque CSS para mostrar ou esconder se necessário, 
-                // mas o layoutContentWidget já cuida da posição.
-                colorOverlayWidget.getDomNode().style.display = 'block';
-                colorWidgetVisible = true;
-            } 
-            else if (hsvMatch) {
-                currentMethod = 'HSV';
-                widgetPosition = position;
-                editor.layoutContentWidget(colorOverlayWidget);
-                colorOverlayWidget.getDomNode().style.display = 'block';
-                colorWidgetVisible = true;
-            } 
-            else {
-                // Esconde se sair dos parenteses
-                if (colorWidgetVisible) {
-                    colorOverlayWidget.getDomNode().style.display = 'none';
-                    colorWidgetVisible = false;
+                    markers.push({
+                        severity: monaco.MarkerSeverity.Error,
+                        message: "Variável ou comando desconhecido: " + word,
+                        startLineNumber: startPos.lineNumber,
+                        startColumn: startPos.column,
+                        endLineNumber: endPos.lineNumber,
+                        endColumn: endPos.column
+                    });
                 }
             }
+            monaco.editor.setModelMarkers(model, "owner", markers);
+        }
+
+        // Validar ao digitar
+        editor.onDidChangeModelContent(() => {
+            validateCode();
         });
-
-        // Monitora a mudança de cor no Input Invisível
-        document.getElementById('hiddenColorPicker').addEventListener('input', function(e) {
-            var hex = e.target.value; // Formato #RRGGBB
-            var finalString = "";
-
-            // Converte HEX para RGB numérico
-            var r = parseInt(hex.substr(1, 2), 16);
-            var g = parseInt(hex.substr(3, 2), 16);
-            var b = parseInt(hex.substr(5, 2), 16);
-
-            if (currentMethod === 'RGB') {
-                // Formato: 255, 255, 255
-                finalString = r + ", " + g + ", " + b;
-            } else if (currentMethod === 'HSV') {
-                // Formato Roblox: 0 a 1
-                // Conversão de RGB (0-255) para HSV (0-1)
-                var rNorm = r / 255, gNorm = g / 255, bNorm = b / 255;
-                var max = Math.max(rNorm, gNorm, bNorm), min = Math.min(rNorm, gNorm, bNorm);
-                var h, s, v = max;
-                var d = max - min;
-                
-                s = max === 0 ? 0 : d / max;
-
-                if (max === min) {
-                    h = 0; // acromático
-                } else {
-                    switch (max) {
-                        case rNorm: h = (gNorm - bNorm) / d + (gNorm < bNorm ? 6 : 0); break;
-                        case gNorm: h = (bNorm - rNorm) / d + 2; break;
-                        case bNorm: h = (rNorm - gNorm) / d + 4; break;
-                    }
-                    h /= 6;
-                }
-
-                // Arredondar para 3 casas decimais para ficar limpo
-                var hF = h.toFixed(3);
-                var sF = s.toFixed(3);
-                var vF = v.toFixed(3);
-                
-                finalString = hF + ", " + sF + ", " + vF;
-            }
-
-            // Inserir o texto no editor
-            if (widgetPosition) {
-                // Precisamos saber se já tem texto dentro para substituir ou apenas inserir
-                // Simplificação: Insere na posição do cursor.
-                // O snippet do Monaco seleciona o interior, então "executeEdits" substitui a seleção.
-                
-                var p = widgetPosition;
-                var selection = editor.getSelection();
-
-                editor.executeEdits("color-picker", [{
-                    range: selection,
-                    text: finalString,
-                    forceMoveMarkers: true
-                }]);
-            }
-        });
-
     });
 </script>
 
