@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Roblox Studio Web - Ultra Editor</title>
+    <style>
+        :root {
+            --bg-color: #1e1e1e;
+            --sidebar-bg: #2d2d2d;
+            --border-color: #333333;
+            --text-main: #d4d4d4;
+            --kw-color: #569cd6;
+            --global-color: #4fc1ff;    
+            --string-color: #ce9178;
+            --method-color: #dcdcaa;
+            --error-color: #f44747;
+        }
+
+        body, html {
+            margin: 0; padding: 0;
+            height: 100%; width: 100%;
+            background-color: var(--bg-color);
+            font-family: 'Consolas', 'Monaco', monospace;
+            overflow: hidden;
+            color: var(--text-main);
+        }
+
+        .container { display: flex; flex-direction: column; height: 100vh; }
+
+        header {
+            height: 45px; background: #2d2d2d;
+            border-bottom: 1px solid var(--border-color);
+            display: flex; align-items: center; padding: 0 20px;
+            font-size: 16px; font-weight: bold; color: #ffffff;
+        }
+
+        .editor-area { flex: 1; display: flex; position: relative; overflow: hidden; }
+
+        .line-numbers {
+            width: 45px; background-color: var(--sidebar-bg);
+            border-right: 1px solid var(--border-color);
+            text-align: right; padding: 10px 5px;
+            font-size: 14px; line-height: 22px; color: #858585;
+            user-select: none; z-index: 20;
+        }
+
+        .code-wrapper { 
+            position: relative; flex: 1; 
+            overflow: auto; background: var(--bg-color);
+        }
+
+        .code-layer {
+            position: absolute; top: 0; left: 0;
+            margin: 0; padding: 10px;
+            box-sizing: border-box;
+            font-family: 'Consolas', monospace;
+            font-size: 16px; line-height: 22px;
+            tab-size: 4; white-space: pre;
+            word-wrap: normal; border: none; outline: none;
+            min-width: 100%; width: max-content;
+        }
+
+        #highlight-layer { 
+            z-index: 3; 
+            pointer-events: none;
+            color: var(--text-main);
+        }
+
+        #code-editor {
+            z-index: 2; 
+            background: transparent;
+            color: transparent; 
+            caret-color: #ffffff;
+            resize: none;
+        }
+
+        .color-btn {
+            background: #444; color: #fff;
+            border: 1px solid #666; border-radius: 3px;
+            padding: 0 5px; cursor: pointer;
+            font-size: 11px; margin: 0 5px;
+            pointer-events: auto;
+            display: inline-flex; align-items: center; gap: 3px;
+            position: relative;
+            z-index: 10;
+        }
+
+        .hl-keyword { color: var(--kw-color); font-weight: bold; }
+        .hl-global { color: var(--global-color); font-weight: bold; }
+        .hl-string { color: var(--string-color); }
+        .hl-method { color: var(--method-color); }
+        .hl-error { color: var(--error-color); text-decoration: underline wavy var(--error-color); }
+        
+        #autocomplete-list {
+            position: absolute; background: #252526; color: white;
+            border: 1px solid #454545; z-index: 1000; display: none;
+            max-height: 250px; overflow-y: auto; min-width: 220px; border-radius: 4px;
+        }
+
+        .suggestion-item { padding: 8px 12px; cursor: pointer; border-bottom: 1px solid #333; }
+        .suggestion-item:hover, .suggestion-item.selected { background-color: #094771; }
+
+        input[type="color"] { position: absolute; visibility: hidden; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <header>Roblox Studio Web - Ultra Editor</header>
+    <div class="editor-area">
+        <div class="line-numbers" id="line-numbers">1</div>
+        <div class="code-wrapper" id="scroll-container">
+            <pre id="highlight-layer" class="code-layer"></pre>
+            <textarea id="code-editor" class="code-layer" spellcheck="false" autocomplete="off"></textarea>
+        </div>
+        <div id="autocomplete-list"></div>
+        <input type="color" id="color-picker">
+    </div>
+</div>
+
+<script>
+    const editor = document.getElementById('code-editor');
+    const highlightLayer = document.getElementById('highlight-layer');
+    const suggestionList = document.getElementById('autocomplete-list');
+    const lineNumbers = document.getElementById('line-numbers');
+    const picker = document.getElementById('color-picker');
+
+    const keywords = [
+        "print","pairs","ipairs","game","workspace","script","require","typeof","shared","settings",
+        "local","end","function","if","then","else","elseif","for","while","do","repeat","until","return","break","continue",
+        "true","false","nil","and","not","or","ScreenGui","BillboardGui","SurfaceGui","Frame","ScrollingFrame","CanvasGroup",
+        "TextLabel","TextButton","TextBox","ImageLabel","ImageButton","ViewportFrame","VideoFrame","UIListLayout","UIGridLayout",
+        "UIPageLayout","UICorner","UIStroke","UIPadding","UIAspectRatioConstraint","UIScale","UISizeConstraint","UITextSizeConstraint",
+        "WaitForChild()","FindFirstChild()","FindFirstChildWhichIsA()","GetChildren()","GetDescendants()","Destroy()","Clone()","IsA()",
+        "Instance.new()","Color3.new()","Color3.fromRGB()","Color3.fromHSV()","UDim2.new()","UDim.new()","Vector2.new()","Vector3.new()",
+        "CFrame.new()","TweenService:Create()","TweenInfo.new()","Tween:Play()","Tween:Pause()","Tween:Cancel()","Name","Parent","Size",
+        "Position","AnchorPoint","Rotation","LayoutOrder","ZIndex","Visible","Active","Selectable","AutomaticSize","SizeConstraint",
+        "ClipsDescendants","BackgroundColor3","BackgroundTransparency","BorderSizePixel","BorderColor3","Text","TextColor3",
+        "TextTransparency","TextSize","Font","RichText","TextWrapped","TextScaled","TextYAlignment","LineHeight","PlaceholderText",
+        "PlaceholderColor3","ClearTextOnFocus","CanvasSize","CanvasPosition","ScrollingEnabled","ScrollBarThickness","AutomaticCanvasSize",
+        "Image","ImageColor3","ImageTransparency","ScaleType","SliceCenter","SliceScale","TileSize","ResampleMode","Color","Thickness",
+        "Transparency","ApplyStrokeMode","LineJoinMode","CornerRadius","PaddingTop","PaddingBottom","PaddingLeft","PaddingRight",
+        "MaxSize","MinSize","MaxTextSize","MinTextSize","AspectRatio","AspectType","DominantAxis"
+    ];
+
+    const strictKws = ["local", "function", "if", "then", "else", "elseif", "for", "while", "do", "repeat", "until", "return", "end", "break", "continue"];
+
+    function updateHighlight() {
+        let text = editor.value;
+        let html = text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+
+        html = html.replace(/(["'])(.*?)\1/g, '<span class="hl-string">$&</span>');
+
+        html = html.replace(/\b([a-zA-Z0-9_]+)\b/g, (match) => {
+            let lower = match.toLowerCase();
+            const typos = ["functoin", "locla", "retunr", "endd", "whit", "ifn", "dooo"];
+            if ((strictKws.includes(lower) && match !== lower) || typos.includes(lower)) {
+                return `<span class="hl-error">${match}</span>`;
+            }
+            return match;
+        });
+
+        html = html.replace(new RegExp(`\\b(${strictKws.join('|')}|true|false|nil|and|not|or)\\b`, 'g'), '<span class="hl-keyword">$1</span>');
+        html = html.replace(/\b(game|workspace|script|shared|print|require|typeof)\b/g, '<span class="hl-global">$1</span>');
+        html = html.replace(/:([a-zA-Z0-9_]+)/g, ':<span class="hl-method">$1</span>');
+        html = html.replace(/(--.*$)/gm, '<span style="color: #6a9955; font-style: italic;">$1</span>');
+
+        html = html.replace(/Color3\.fromRGB\(([\d\s,]*)\)/g, (match, content) => {
+            if (content.trim() === "") {
+                return `Color3.fromRGB(<span class="color-btn" onclick="openColorPicker()">🖱️ SelectColor</span>)`;
+            } else {
+                return `Color3.fromRGB(<span style="color: rgb(${content}); font-weight: bold;">${content}</span>)`;
+            }
+        });
+
+        highlightLayer.innerHTML = html + "\n";
+        editor.style.width = highlightLayer.offsetWidth + "px";
+        editor.style.height = highlightLayer.offsetHeight + "px";
+        updateLineNumbers();
+    }
+
+    window.openColorPicker = function() {
+        picker.click();
+    };
+
+    picker.oninput = function() {
+        const hex = this.value;
+        const r = parseInt(hex.slice(1, 3), 16);
+        const g = parseInt(hex.slice(3, 5), 16);
+        const b = parseInt(hex.slice(5, 7), 16);
+        const rgb = `${r}, ${g}, ${b}`;
+        let val = editor.value;
+        if (val.includes("Color3.fromRGB()")) {
+            editor.value = val.replace("Color3.fromRGB()", `Color3.fromRGB(${rgb})`);
+            updateHighlight();
+        }
+    };
+
+    function updateLineNumbers() {
+        const lines = editor.value.split('\n').length;
+        lineNumbers.innerHTML = Array.from({length: lines}, (_, i) => i + 1).join('<br>');
+    }
+
+    function checkAutocomplete() {
+        const pos = editor.selectionStart;
+        const before = editor.value.substring(0, pos);
+        const match = before.match(/[a-zA-Z0-9_]+$/);
+        const lastWord = match ? match[0] : "";
+
+        if (lastWord.length > 0) {
+            const matches = keywords.filter(k => k.toLowerCase().startsWith(lastWord.toLowerCase()));
+            if (matches.length > 0) {
+                showSuggestions(matches, lastWord);
+                return;
+            }
+        }
+        suggestionList.style.display = 'none';
+    }
+
+    function showSuggestions(matches, lastWord) {
+        suggestionList.innerHTML = '';
+        matches.slice(0, 15).forEach((match, i) => {
+            const div = document.createElement('div');
+            div.className = 'suggestion-item' + (i === 0 ? ' selected' : '');
+            div.innerHTML = `<b>${match}</b>`;
+            div.onclick = () => applySuggestion(match, lastWord);
+            suggestionList.appendChild(div);
+        });
+
+        const coords = getCaretCoordinates();
+        suggestionList.style.left = coords.x + 'px';
+        suggestionList.style.top = (coords.y + 25) + 'px';
+        suggestionList.style.display = 'block';
+    }
+
+    function applySuggestion(word, lastWord) {
+        const pos = editor.selectionStart;
+        const start = pos - lastWord.length;
+        editor.setRangeText(word, start, pos, 'end');
+        updateHighlight();
+        suggestionList.style.display = 'none';
+        editor.focus();
+    }
+
+    function getCaretCoordinates() {
+        const start = editor.selectionStart;
+        const textBefore = editor.value.substring(0, start);
+        const lines = textBefore.split('\n');
+        const currLine = lines.length;
+        const currCol = lines[lines.length - 1].length;
+        return { x: currCol * 9 + 50, y: (currLine - 1) * 22 };
+    }
+
+    editor.addEventListener('input', () => {
+        updateHighlight();
+        checkAutocomplete();
+    });
+
+    editor.onscroll = () => {
+        highlightLayer.scrollLeft = editor.scrollLeft;
+        highlightLayer.scrollTop = editor.scrollTop;
+    };
+
+    editor.addEventListener('keydown', (e) => {
+        // Pares que devem fechar automaticamente
+        const pairs = { '(': ')', '{': '}', '[': ']', '"': '"', "'": "'", '`': '`' };
+        
+        // MODIFICAÇÃO SOLICITADA: Lógica para auto-fechar parênteses e outros pares
+        if (pairs[e.key]) {
+            e.preventDefault(); 
+            const start = editor.selectionStart;
+            const end = editor.selectionEnd;
+            const value = editor.value;
+            const selection = value.substring(start, end);
+            
+            // Insere o par e mantém o cursor no meio (ou envolve a seleção)
+            const replacement = e.key + selection + pairs[e.key];
+            editor.setRangeText(replacement, start, end, 'end');
+            
+            if (start === end) {
+                editor.selectionStart = editor.selectionEnd = start + 1;
+            } else {
+                editor.selectionStart = start + 1;
+                editor.selectionEnd = end + 1;
+            }
+            updateHighlight();
+            return;
+        }
+
+        // LÓGICA DE TV E NAVEGAÇÃO
+        if (suggestionList.style.display === 'block') {
+            const items = suggestionList.querySelectorAll('.suggestion-item');
+            let selected = Array.from(items).findIndex(i => i.classList.contains('selected'));
+            
+            if (e.key === 'ArrowDown') { 
+                e.preventDefault(); 
+                items[selected].classList.remove('selected'); 
+                items[(selected + 1) % items.length].classList.add('selected'); 
+                items[(selected + 1) % items.length].scrollIntoView({block: 'nearest'});
+            }
+            else if (e.key === 'ArrowUp') { 
+                e.preventDefault(); 
+                items[selected].classList.remove('selected'); 
+                items[(selected - 1 + items.length) % items.length].classList.add('selected'); 
+                items[(selected - 1 + items.length) % items.length].scrollIntoView({block: 'nearest'});
+            }
+            else if (e.key === 'Enter') { 
+                e.preventDefault(); 
+                items[selected].click(); 
+            }
+            else if (e.key === 'Escape') { 
+                suggestionList.style.display = 'none'; 
+            }
+        } else {
+            if (e.key === 'Enter') {
+                e.preventDefault(); 
+                editor.blur();      
+                suggestionList.style.display = 'none';
+            }
+        }
+    });
+
+    updateHighlight();
+</script>
+</body>
+  </html>
+  
